@@ -1,0 +1,66 @@
+version: "3"
+name: ms-${TNAME:-public}
+services:
+  ms.core:
+    container_name: ms-${TNAME:-public}-ms.core
+    build:
+        context: ./../ms-core/vendor/laravel/sail/runtimes/8.2
+        dockerfile: Dockerfile
+        args:
+            WWWGROUP: ${WWWGROUP}
+    image: sail-8.2/app
+    extra_hosts:
+        - 'host.docker.internal:host-gateway'
+    ports:
+      - '81${NPORT:-00}:80'
+    environment:
+      APP_SERVICE: ms.core
+      WWWUSER: '${WWWUSER}'
+      LARAVEL_SAIL: 0
+      XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+      XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+      IGNITION_LOCAL_SITES_PATH: '${PWD}'
+    volumes:
+        - './../ms-core:/var/www/html'
+    networks:
+      - msnet
+
+  ms.commerce:
+    container_name: ms-${TNAME:-public}-ms.commerce
+    build:
+      context: ./../ms-commerce/vendor/laravel/sail/runtimes/8.2
+      dockerfile: Dockerfile
+      args:
+        WWWGROUP: '${WWWGROUP}'
+    image: sail-8.2/app
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '82${NPORT:-00}:80'
+    environment:
+      APP_SERVICE: ms.commerce
+      WWWUSER: '${WWWUSER}'
+      LARAVEL_SAIL: 0
+      XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+      XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+      IGNITION_LOCAL_SITES_PATH: '${PWD}'
+    volumes:
+      - './../ms-commerce:/var/www/html'
+    networks:
+      - msnet
+
+  api:
+    container_name: ms-${TNAME:-public}-api
+    image: apache/apisix:${APISIX_IMAGE_TAG:-3.6.0-debian}
+    volumes:
+      - ./apisix/standalone.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    environment:
+      - APISIX_STAND_ALONE=true
+    ports:
+      - '88${NPORT:-00}:9080/tcp'
+    networks:
+      - msnet
+
+networks:
+  msnet:
+    driver: bridge
